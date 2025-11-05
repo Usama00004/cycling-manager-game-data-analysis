@@ -2,8 +2,6 @@
 **Application Report for M.Sc. Data Science – TU Dortmund University (Summer Semester 2026)**  
 
 
--
-
 ## Project Overview
 
 This project is part of the application requirement for the **Master’s program in Data Science at TU Dortmund University**.  
