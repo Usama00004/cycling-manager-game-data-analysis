@@ -1,4 +1,3 @@
-
 # ===============================
 # Import necessary libraries
 # ===============================
@@ -8,9 +7,10 @@ import matplotlib.pyplot as plt
 from scipy import stats
 import numpy as np
 import requests
+import re
 
 # ===============================
-# 1. Load Dataset
+# Load Dataset
 # ===============================
 def load_data(url: str) -> pd.DataFrame:
     """Load and properly parse the cycling data manually from the URL."""
@@ -44,7 +44,7 @@ def load_data(url: str) -> pd.DataFrame:
 
 
 # ===============================
-# 2. Clean & Prepare Data
+# Clean & Prepare Data
 # ===============================
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """Clean data by ensuring correct types and removing missing values."""
@@ -138,8 +138,118 @@ def pairwise_ttests(df: pd.DataFrame):
         print(f"{c1} vs {c2}: t={t_stat:.3f}, p={p_value:.3f}")
 
 
+def plot_violin(df, x_col='stage_class', y_col='points', hue_col='rider_class_clean'):
+    """
+    Creates a violin plot to visualize the distribution of points
+    across stage classes, optionally grouped by rider class.
+
+    Parameters:
+        df (DataFrame): The input dataframe.
+        x_col (str): Column name for the X-axis (default: 'stage_class').
+        y_col (str): Column name for the Y-axis (default: 'points').
+        hue_col (str): Column name for color grouping (default: 'rider_class_clean').
+    """
+    plt.figure(figsize=(10, 6))
+    
+    sns.violinplot(
+        x=x_col,
+        y=y_col,
+        hue=hue_col,
+        data=df,
+        inner='quartile',
+        palette='Set2',
+        split=True
+    )
+    
+    plt.title('Distribution of Rider Points by Stage Class', fontsize=14)
+    plt.xlabel(x_col.replace('_', ' ').title(), fontsize=12)
+    plt.ylabel(y_col.replace('_', ' ').title(), fontsize=12)
+    plt.legend(title=hue_col.replace('_', ' ').title(), bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.show()
+
+
+
+
+
+def stage_class_summary(df):
+
+    valid_classes = ["Flat", "Hills", "mount"]
+    df["stage_class_clean"] = df["stage_class"].apply(
+        lambda x: next((c for c in valid_classes if c.lower() in str(x).lower()), None)
+    )
+    
+    df = df.dropna(subset=["stage_class_clean"])
+    
+    # Aggregate statistics
+    summary = df.groupby("stage_class_clean")["points"].agg(
+        Mean="mean",
+        Median="median",
+        Std_Dev="std",
+        Q1=lambda x: x.quantile(0.25),
+        Q3=lambda x: x.quantile(0.75)
+    ).reset_index()
+    
+    # Calculate IQR
+    summary["IQR"] = summary["Q3"] - summary["Q1"]
+    
+    # Drop Q1 and Q3 columns
+    summary = summary.drop(columns=["Q1", "Q3"])
+    
+    # Round values for readability
+    summary = summary.round(1)
+    
+    # Rename column
+    summary = summary.rename(columns={"stage_class_clean": "Stage Class"})
+    
+    return summary
+
+
+
+
+def rider_class_summary(df):
+    """
+    Calculates mean, median, standard deviation, and IQR of points
+    grouped by cleaned rider_class.
+    """
+    df = clean_rider_class(df)
+
+    summary = df.groupby("rider_class_clean")["points"].agg(
+        Mean="mean",
+        Median="median",
+        Std_Dev="std",
+        Q1=lambda x: x.quantile(0.25),
+        Q3=lambda x: x.quantile(0.75)
+    ).reset_index()
+
+    summary["IQR"] = summary["Q3"] - summary["Q1"]
+    summary = summary.drop(columns=["Q1", "Q3"])
+    summary = summary.round(1)
+    summary = summary.rename(columns={"rider_class_clean": "Rider Class"})
+    return summary
+
+def clean_rider_class(df):
+    """
+    Normalizes rider_class to only the 4 valid classes.
+    """
+    valid_classes = ["All Rounder", "Climber", "Sprinter", "Unclassed"]
+    df["rider_class_clean"] = df["rider_class"].apply(
+        lambda x: next((c for c in valid_classes if c in x), None)
+    )
+   
+    df = df.dropna(subset=["rider_class_clean"])
+    return df
+
+
+
+
+
+
+
+
 # ===============================
-# 6. Main Function
+# Main Function
 # ===============================
 def main():
     url = "https://statistik.tu-dortmund.de/storages/statistik/r/Downloads/Studium/Studiengaenge-Infos/Data_Science/cycling.txt"
@@ -149,15 +259,18 @@ def main():
     
     
     df = clean_data(df)
- 
     
-    # # Descriptive Analysis
-    descriptive_statistics(df)
 
+# ✅ Example usage:
+# First, clean your data
+    df = clean_rider_class(df)
+
+# Then, create the violin plot
+    plot_violin(df)
     
     # # Visualization
-    plot_rider_performance(df)
-    boxplot_rider_points(df)
+    #  plot_rider_performance(df)
+     #  boxplot_rider_points(df)
     
     # # Hypothesis Testing
     # test_normality(df)
