@@ -1,8 +1,8 @@
 #  Cycling Manager Game Data Analysis  
 **Application Report for M.Sc. Data Science – TU Dortmund University (Summer Semester 2026)**  
-**Department of Statistics – Prof. Dr. Andreas Groll**
 
----
+
+-
 
 ## Project Overview
 
@@ -13,15 +13,15 @@ The main objective of this analysis is to:
 - Understand whether there is a **significant performance difference among rider classes**.
 - Compare how different **rider types perform across various stage types** (flat, hills, mountain).
 
----
+-
 
-## 🎯 Research Questions
+## Research Questions
 
 1. Is there a difference in the average performance (points) between the rider classes?
 2. How do rider classes perform on different stage types (flat, hills, mountain)?
 3. Which statistical measures and tests can best describe and evaluate these differences?
 
----
+-
 
 ## Dataset Description
 
@@ -36,9 +36,9 @@ The main objective of this analysis is to:
   | `points` | Points earned by the rider for that stage |
   | `stage_class` | Type of stage (flat, hills, mountain) |
 
----
+-
 
-## 🧮 Methods and Analysis
+## Methods and Analysis
 
 The project is divided into two major analytical components:
 
@@ -57,9 +57,9 @@ The project is divided into two major analytical components:
 - Visualization:
   - **Violin Plot** – showing point distribution by rider class for hypothesis testing context.
 
----
+-
 
-##Technologies Used
+## Technologies Used
 
 | Tool / Library | Purpose |
 |-----------------|----------|
@@ -71,9 +71,9 @@ The project is divided into two major analytical components:
 | **SciPy** | Statistical tests (ANOVA, normality checks) |
 | **Statsmodels** | Advanced hypothesis testing (Tukey HSD) |
 
----
+-
 
-## ⚙️ How to Run the Project
+## How to Run the Project
 
 ### 1. Clone the Repository
 ```bash
