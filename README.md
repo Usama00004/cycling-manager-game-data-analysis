@@ -3,13 +3,12 @@
 
 
 ## Project Overview
-
-
-### **Image Placeholder**
-![Insert Figure Description Here](path/to/your/image.png)
-
 This project is part of the application requirement for the **Master’s program in Data Science at TU Dortmund University**.  
 The dataset represents results from a **cycling manager game**, where professional riders earn points based on their performance in multiple race stages.
+
+![Distribution of total points by rider class and stage class](https://github.com/Usama00004/cycling-manager-game-data-analysis/blob/main/Image.png)
+
+
 
 The main objective of this analysis is to:
 - Understand whether there is a **significant performance difference among rider classes**.
