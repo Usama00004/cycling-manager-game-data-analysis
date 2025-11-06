@@ -49,8 +49,7 @@ The project is divided into two major analytical components:
 - Testing for statistical differences between groups using:
   - **ANOVA (Analysis of Variance)** – to compare means among rider classes.
   - **Post-hoc Tests (Tukey HSD)** – to identify specific group differences.
-- Visualization:
-  - **Violin Plot** – showing point distribution by rider class for hypothesis testing context.
+
 
 
 ## Technologies Used
@@ -66,9 +65,3 @@ The project is divided into two major analytical components:
 | **Statsmodels** | Advanced hypothesis testing (Tukey HSD) |
 
 
-## How to Run the Project
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Wasim99457/TU-Dortmund-Task-.git
-cd TU-Dortmund-Task-
