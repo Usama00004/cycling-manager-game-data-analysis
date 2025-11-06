@@ -8,7 +8,9 @@ from scipy import stats
 import numpy as np
 import requests
 import re
-
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 # ===============================
 # Load Dataset
 # ===============================
@@ -56,71 +58,17 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     print("Data cleaned and formatted.")
     return df
 
+def clean_rider_class(df):
+    valid_classes = ["All Rounder", "Climber", "Sprinter", "Unclassed"]
+    df["rider_class_clean"] = df["rider_class"].apply(
+        lambda x: next((c for c in valid_classes if c in x), None)
+    )
+    df = df.dropna(subset=["rider_class_clean"])
+    return df
 
 # ===============================
 # Descriptive Statistics
 # ===============================
-def descriptive_statistics(df: pd.DataFrame):
-    """Generate descriptive statistics grouped by rider and stage class."""
-    desc = df.groupby(["rider_class", "stage_class"])["points"].describe()
-    print("\n Descriptive Statistics by Rider and Stage Class:")
-    print(desc)
-    return desc
-
-
-# ===============================
-# Visual Analysis
-# ===============================
-def plot_rider_performance(df: pd.DataFrame):
-    """Plot average rider performance across stage types."""
-    plt.figure(figsize=(10, 6))
-    sns.barplot(x="stage_class", y="points", hue="rider_class", data=df, ci="sd", palette="muted")
-    plt.title("Average Rider Performance by Stage Class")
-    plt.xlabel("Stage Class")
-    plt.ylabel("Average Points")
-    plt.legend(title="Rider Class")
-    plt.tight_layout()
-    plt.show()
-
-
-def boxplot_rider_points(df: pd.DataFrame):
-    """Boxplot showing distribution of points by rider class."""
-    plt.figure(figsize=(8, 6))
-    sns.boxplot(x="rider_class", y="points", data=df, palette="pastel")
-    plt.title("Distribution of Points per Rider Class")
-    plt.xlabel("Rider Class")
-    plt.ylabel("Points")
-    plt.tight_layout()
-    plt.show()
-
-
-def anova_test(df: pd.DataFrame):
-    print("\n One-way ANOVA Test:")
-    groups = [df.loc[df["rider_class"] == c, "points"] for c in df["rider_class"].unique()]
-    f_stat, p_value = stats.f_oneway(*groups)
-    print(f"F-statistic = {f_stat:.3f}, p-value = {p_value:.3e}")
-    return f_stat, p_value
-
-def plot_violin(df, x_col='stage_class', y_col='points', hue_col='rider_class_clean'):
-    plt.figure(figsize=(10, 6))
-    sns.violinplot(
-        x=x_col,
-        y=y_col,
-        hue=hue_col,
-        data=df,
-        inner='quartile',
-        palette='Set2',
-        split=True
-    )
-    plt.title('Distribution of Rider Points by Stage Class', fontsize=14)
-    plt.xlabel(x_col.replace('_', ' ').title(), fontsize=12)
-    plt.ylabel(y_col.replace('_', ' ').title(), fontsize=12)
-    plt.legend(title=hue_col.replace('_', ' ').title(), bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.grid(True, linestyle='--', alpha=0.5)
-    plt.tight_layout()
-    plt.show()
-
-
 def stage_class_summary(df):
     valid_classes = ["Flat", "Hills", "mount"]
     df["stage_class_clean"] = df["stage_class"].apply(
@@ -157,13 +105,74 @@ def rider_class_summary(df):
     return summary
 
 
-def clean_rider_class(df):
-    valid_classes = ["All Rounder", "Climber", "Sprinter", "Unclassed"]
-    df["rider_class_clean"] = df["rider_class"].apply(
-        lambda x: next((c for c in valid_classes if c in x), None)
+# ===============================
+# Visual Analysis
+# ===============================
+
+def histogram_plot_points_by_rider_and_stage(df):
+    grouped = df.groupby(['rider_class_clean', 'stage_class'])['points'].sum().reset_index()
+    plt.figure(figsize=(10, 6))
+    sns.barplot(
+        data=grouped,
+        x='rider_class_clean',
+        y='points',
+        hue='stage_class',
+        # palette='gray',  # Black & white mode
+        edgecolor='black'
     )
-    df = df.dropna(subset=["rider_class_clean"])
-    return df
+
+    plt.title('Total Points per Rider Class by Stage Class', fontsize=14)
+    plt.xlabel('Rider Class', fontsize=12)
+    plt.ylabel('Total Points', fontsize=12)
+    plt.xticks(rotation=0)
+    plt.legend(title='Stage Class', frameon=True)
+    plt.tight_layout()
+    plt.show()
+
+def boxplot_rider_points(df: pd.DataFrame):
+    df = clean_rider_class(df)
+    """Boxplot showing distribution of points by rider class."""
+    plt.figure(figsize=(8, 6))
+    sns.boxplot(x="rider_class_clean", y="points", data=df, palette="pastel")
+    plt.title("Distribution of Points per Rider Class")
+    plt.xlabel("Rider Class")
+    plt.ylabel("Points")
+    plt.tight_layout()
+    plt.show()
+
+# ooooooo
+
+
+# ===============================
+# Testing
+# ===============================
+
+def anova_with_tukey(df, dependent_var='points', factor_var='rider_class_clean', alpha=0.05):
+   
+    # 1. Fit ANOVA model
+    model = ols(f'{dependent_var} ~ C({factor_var})', data=df).fit()
+    anova_table = sm.stats.anova_lm(model, typ=2)  # Type II ANOVA
+    
+    # Check if ANOVA is significant
+    p_value = anova_table['PR(>F)'][0]  # p-value of the factor
+    significant = p_value < alpha
+    
+    # 2. Perform Tukey's HSD if ANOVA is significant
+    tukey_summary = None
+    if significant:
+        tukey = pairwise_tukeyhsd(endog=df[dependent_var], groups=df[factor_var], alpha=alpha)
+        tukey_summary = pd.DataFrame(data=tukey.summary().data[1:], columns=tukey.summary().data[0])
+    
+    # 3. Return results
+    return {
+        'anova_table': anova_table,
+        'tukey_summary': tukey_summary,
+        'significant': significant
+    }
+
+
+
+
 
 # ===============================
 # Main Function
@@ -173,7 +182,21 @@ def main():
     df = load_data(url)
     df = clean_data(df)
     df = clean_rider_class(df)
-    plot_violin(df)
+    # histogram_plot_points_by_rider_and_stage(df)
+    # boxplot_rider_points(df)
+
+    results = anova_with_tukey(df, dependent_var='points', factor_var='rider_class_clean')
+    # ANOVA table
+    print("ANOVA Table:")
+    print(results['anova_table'])
+
+    # Tukey's test (only if significant)
+    if results['significant']:
+        print("\nTukey HSD Post-hoc Test Results:")
+        print(results['tukey_summary'])
+    else:
+        print("\nNo significant difference between groups (ANOVA not significant).")
+
 
 # ===============================
 # Entry Point
