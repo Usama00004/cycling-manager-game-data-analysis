@@ -1,19 +1,15 @@
-# ===============================
-# Import necessary libraries
-# ===============================
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import stats
 import numpy as np
 import requests
-import re
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
-# ===============================
+
+
 # Load Dataset
-# ===============================
 def load_data(url: str) -> pd.DataFrame:
     """Load and properly parse the cycling data manually from the URL."""
     try:
@@ -24,11 +20,9 @@ def load_data(url: str) -> pd.DataFrame:
 
         data = []
         for line in lines:
-            # Split by whitespace, but keep quoted strings together
             parts = line.replace('"', '').split()
-            # The data follows the pattern: rider, rider_class, stage, points, stage_class
             if len(parts) >= 5:
-                rider = parts[0] + " " + parts[1]  # combine first and last name
+                rider = parts[0] + " " + parts[1]
                 rider_class = parts[2] + " " + parts[3] if parts[3] not in ["X1", "X2", "X3"] else parts[2]
                 stage = parts[-3]
                 points = parts[-2]
@@ -45,9 +39,8 @@ def load_data(url: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-# ===============================
 # Clean & Prepare Data
-# ===============================
+
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """Clean data by ensuring correct types and removing missing values."""
     if df.empty:
@@ -66,9 +59,9 @@ def clean_rider_class(df):
     df = df.dropna(subset=["rider_class_clean"])
     return df
 
-# ===============================
+
 # Descriptive Statistics
-# ===============================
+
 def stage_class_summary(df):
     valid_classes = ["Flat", "Hills", "mount"]
     df["stage_class_clean"] = df["stage_class"].apply(
@@ -104,10 +97,7 @@ def rider_class_summary(df):
     summary = summary.rename(columns={"rider_class_clean": "Rider Class"})
     return summary
 
-
-# ===============================
 # Visual Analysis
-# ===============================
 
 def histogram_plot_points_by_rider_and_stage(df):
     grouped = df.groupby(['rider_class_clean', 'stage_class'])['points'].sum().reset_index()
@@ -140,66 +130,40 @@ def boxplot_rider_points(df: pd.DataFrame):
     plt.tight_layout()
     plt.show()
 
-# ooooooo
 
-
-# ===============================
 # Testing
-# ===============================
 
 def anova_with_tukey(df, dependent_var='points', factor_var='rider_class_clean', alpha=0.05):
-   
-    # 1. Fit ANOVA model
+
     model = ols(f'{dependent_var} ~ C({factor_var})', data=df).fit()
-    anova_table = sm.stats.anova_lm(model, typ=2)  # Type II ANOVA
-    
-    # Check if ANOVA is significant
-    p_value = anova_table['PR(>F)'][0]  # p-value of the factor
+    anova_table = sm.stats.anova_lm(model, typ=2) 
+
+    p_value = anova_table['PR(>F)'][0]
     significant = p_value < alpha
-    
-    # 2. Perform Tukey's HSD if ANOVA is significant
+
     tukey_summary = None
     if significant:
         tukey = pairwise_tukeyhsd(endog=df[dependent_var], groups=df[factor_var], alpha=alpha)
         tukey_summary = pd.DataFrame(data=tukey.summary().data[1:], columns=tukey.summary().data[0])
-    
-    # 3. Return results
+
     return {
         'anova_table': anova_table,
         'tukey_summary': tukey_summary,
         'significant': significant
     }
 
-
-
-
-
-# ===============================
 # Main Function
-# ===============================
+
 def main():
     url = "https://statistik.tu-dortmund.de/storages/statistik/r/Downloads/Studium/Studiengaenge-Infos/Data_Science/cycling.txt"
     df = load_data(url)
     df = clean_data(df)
     df = clean_rider_class(df)
-    # histogram_plot_points_by_rider_and_stage(df)
-    # boxplot_rider_points(df)
-
-    results = anova_with_tukey(df, dependent_var='points', factor_var='rider_class_clean')
-    # ANOVA table
-    print("ANOVA Table:")
-    print(results['anova_table'])
-
-    # Tukey's test (only if significant)
-    if results['significant']:
-        print("\nTukey HSD Post-hoc Test Results:")
-        print(results['tukey_summary'])
-    else:
-        print("\nNo significant difference between groups (ANOVA not significant).")
+    print(df)
 
 
-# ===============================
+
 # Entry Point
-# ===============================
+
 if __name__ == "__main__":
     main()
